@@ -1,0 +1,94 @@
+# ============================================================
+#  Video Deepfake Detector — Training Configuration
+#  Spec (bible §17): AdamW + cosine LR + fp16 + curriculum
+# ============================================================
+
+experiment_name: "video-deepfake-detector-v1"
+output_dir: "runs/"
+
+# ── Model ──────────────────────────────────────────────────
+model:
+  backbone:   xception      # xception | vit | freq | temporal_lstm
+  pretrained: true
+  dropout:    0.5
+  image_size: 224
+
+# ── Training ───────────────────────────────────────────────
+training:
+  epochs:       50
+  batch_size:   32
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+
+  # Loss
+  focal_gamma:         2.0
+  label_smoothing:     0.1
+  consistency_weight:  0.1
+
+  # Mixed precision (RTX 4060 — Ampere architecture, native fp16)
+  fp16: true
+
+  # Gradient accumulation → effective_batch = batch_size × steps = 128
+  gradient_accumulation_steps: 4
+
+  # LR schedule
+  scheduler:    cosine_annealing_with_warmup
+  warmup_epochs: 5
+
+# ── Optimiser ──────────────────────────────────────────────
+optimization:
+  optimizer: AdamW
+  beta1:     0.9
+  beta2:     0.999
+  eps:       1.0e-8
+
+# ── Data ───────────────────────────────────────────────────
+data:
+  root:         "data/"
+  image_size:   224
+
+  datasets:
+    - FaceForensics++
+    - DFDC
+    - CelebDF_v2
+
+  # FaceForensics++ compression levels
+  # C0 = raw, C23 = light compression, C40 = heavy compression
+  ff_compression: [C0, C23, C40]
+
+  # Curriculum split thresholds
+  easy_threshold:   0.30    # epoch/max_epochs < 0.30 → easy only
+  medium_threshold: 0.70    # 0.30–0.70 → easy + medium
+
+  # Split ratios
+  train_split: 0.80
+  val_split:   0.10
+  test_split:  0.10
+
+  # Augmentation
+  augmentation:
+    - VideoCompression        # Simulate H.264 CRF 23–40
+    - ColorJitter             # Brightness/contrast/saturation/hue
+    - HorizontalFlip          # 50% probability
+    - GaussianNoise           # Additive sensor noise
+    - RandomCrop              # 80–100% of image
+    - JpegCompression         # 50–95 quality factor
+
+# ── Adversarial Training (bible §19) ───────────────────────
+adversarial:
+  enabled:       true
+  start_epoch:   15           # Begin AT after 30% of training
+  pgd_eps:       0.031        # 8/255 ≈ 0.031
+  pgd_steps:     10
+  pgd_alpha:     0.003        # Step size = eps/steps
+
+# ── Cross-Dataset Evaluation (bible §18) ───────────────────
+evaluation:
+  benchmark_datasets:
+    - ff_plusplus_test
+    - celeb_df_v2_test
+    - dfdc_test
+    - wild_deepfake_test
+
+  target_auc: 0.95
+  target_eer:  0.08

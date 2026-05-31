@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepScan | Forensic Video Analysis</title>
+    <link rel="stylesheet" href="index.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark-mode">
+
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <div class="logo-icon"></div>
+                <h1>DeepScan <span>Forensics</span></h1>
+            </div>
+            <nav class="header-nav">
+                <button class="nav-btn active" id="nav-upload"><i data-feather="upload"></i> Upload</button>
+                <button class="nav-btn" id="nav-history"><i data-feather="clock"></i> History</button>
+                <button class="nav-btn" id="nav-settings"><i data-feather="settings"></i> Settings</button>
+            </nav>
+            <div class="system-status">
+                <div class="status-indicator"></div>
+                <span>System Ready</span>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+
+            <!-- View 1: Upload & Config -->
+            <section id="view-upload" class="view-section active">
+                <div class="upload-container glass-panel">
+                    <div class="upload-header">
+                        <h2>Analyze Media</h2>
+                        <p>Upload a video for deepfake forensics analysis using our multi-model ensemble.</p>
+                    </div>
+
+                    <div class="drop-zone" id="drop-zone">
+                        <i data-feather="video" class="drop-icon"></i>
+                        <h3 id="drop-text">Drag & Drop Video Here</h3>
+                        <p class="drop-subtext">MP4, MOV, AVI, WEBM up to 500MB</p>
+                        <input type="file" id="file-input" accept="video/mp4,video/quicktime,video/x-msvideo,video/webm" hidden>
+                        <button class="btn btn-primary" id="browse-btn">Browse Files</button>
+                    </div>
+
+                    <div class="config-panel">
+                        <div class="config-group">
+                            <label>Analysis Depth</label>
+                            <div class="depth-selector">
+                                <label class="depth-option">
+                                    <input type="radio" name="depth" value="fast">
+                                    <span class="depth-card">
+                                        <i data-feather="zap"></i>
+                                        <strong>Fast</strong>
+                                        <small>~10s. Spatial only.</small>
+                                    </span>
+                                </label>
+                                <label class="depth-option">
+                                    <input type="radio" name="depth" value="standard" checked>
+                                    <span class="depth-card">
+                                        <i data-feather="layers"></i>
+                                        <strong>Standard</strong>
+                                        <small>~30s. Full ensemble.</small>
+                                    </span>
+                                </label>
+                                <label class="depth-option">
+                                    <input type="radio" name="depth" value="deep">
+                                    <span class="depth-card">
+                                        <i data-feather="target"></i>
+                                        <strong>Deep</strong>
+                                        <small>~60s. Explainability + XAI.</small>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="upload-actions">
+                        <button class="btn btn-accent btn-large" id="start-analysis-btn" disabled>
+                            <i data-feather="play"></i> Start Analysis
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View 2: Processing (WebSocket) -->
+            <section id="view-processing" class="view-section">
+                <div class="processing-container glass-panel">
+                    <h2 class="processing-title">Analysis in Progress</h2>
+                    <div class="progress-wrapper">
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="job-progress-bar"></div>
+                            <div class="progress-glow" id="job-progress-glow"></div>
+                        </div>
+                        <div class="progress-stats">
+                            <span id="job-stage">Initializing...</span>
+                            <span id="job-percentage">0%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="console-box" id="job-console">
+                        <div class="console-line system">[SYSTEM] Connecting to analysis engine...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View 3: Results Dashboard -->
+            <section id="view-results" class="view-section">
+                
+                <div class="results-header">
+                    <div class="verdict-banner" id="verdict-banner">
+                        <div class="verdict-icon" id="verdict-icon"><i data-feather="shield"></i></div>
+                        <div class="verdict-text">
+                            <h2 id="verdict-title">Authentic Media</h2>
+                            <p id="verdict-desc">No significant manipulation detected.</p>
+                        </div>
+                        <div class="verdict-score">
+                            <div class="score-ring" id="score-ring">
+                                <span id="fake-prob-text">0%</span>
+                            </div>
+                            <span>Fake Probability</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-grid">
+                    
+                    <!-- Left Column -->
+                    <div class="results-col-left">
+                        <div class="panel glass-panel">
+                            <h3>Timeline Analysis</h3>
+                            <div class="chart-container">
+                                <canvas id="timelineChart"></canvas>
+                            </div>
+                            <div class="segments-list" id="suspicious-segments">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+
+                        <div class="panel glass-panel">
+                            <h3>Explainability Evidence</h3>
+                            <ul class="evidence-list" id="evidence-list">
+                                <!-- Populated via JS -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="results-col-right">
+                        <div class="panel glass-panel">
+                            <h3>Signal Breakdown</h3>
+                            <div class="radar-chart-container">
+                                <canvas id="radarChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="panel glass-panel">
+                            <h3>Metadata</h3>
+                            <div class="metadata-grid" id="metadata-grid">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-actions">
+                    <button class="btn btn-secondary" id="btn-new-analysis"><i data-feather="plus"></i> New Analysis</button>
+                    <button class="btn btn-primary" id="btn-export-report"><i data-feather="download"></i> Export Forensic Report</button>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
