@@ -245,7 +245,11 @@ class DeepfakeTrainer:
             epochs, cfg_t["batch_size"], cfg_t["batch_size"] * accum_steps, total_steps,
         )
 
-        for epoch in range(epochs):
+        start_epoch = 0
+        if self.cfg.get("resume_checkpoint"):
+            start_epoch = self._load_checkpoint(self.cfg["resume_checkpoint"])
+
+        for epoch in range(start_epoch, epochs):
             train_loss, train_auc = self._train_epoch(
                 train_dl, epoch, epochs, accum_steps
             )
@@ -259,8 +263,11 @@ class DeepfakeTrainer:
             # Checkpoint
             if val_auc > self.best_auc:
                 self.best_auc = val_auc
-                self._save_checkpoint(epoch, val_auc)
+                self._save_checkpoint(epoch, val_auc, is_best=True)
                 logger.info("★ New best AUC: %.4f — checkpoint saved", val_auc)
+            
+            # Save latest checkpoint for resuming
+            self._save_checkpoint(epoch, val_auc, is_best=False)
 
             self._log_metrics(epoch, train_loss, train_auc, val_loss, val_auc)
 
@@ -342,17 +349,49 @@ class DeepfakeTrainer:
         auc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.0
         return total_loss / len(loader), auc
 
-    def _save_checkpoint(self, epoch: int, auc: float):
-        path = self.output_dir / f"best_model_epoch{epoch+1}_auc{auc:.4f}.pth"
-        torch.save({
+    def _save_checkpoint(self, epoch: int, auc: float, is_best: bool = False):
+        state = {
             "epoch":       epoch,
             "model_state": self.model.state_dict(),
             "optim_state": self.optimizer.state_dict(),
+            "scaler_state":self.scaler.state_dict(),
+            "scheduler":   self.scheduler.state_dict() if self.scheduler else None,
             "auc":         auc,
+            "best_auc":    self.best_auc,
             "config":      self.cfg,
-        }, path)
-        # Also save as 'best.pth' for easy loading
-        torch.save(self.model.state_dict(), self.output_dir / "best.pth")
+        }
+        
+        # Always save the latest for daily resuming
+        latest_path = self.output_dir / "latest_checkpoint.pth"
+        torch.save(state, latest_path)
+        
+        if is_best:
+            path = self.output_dir / f"best_model_epoch{epoch+1}_auc{auc:.4f}.pth"
+            torch.save(state, path)
+            torch.save(self.model.state_dict(), self.output_dir / "best.pth")
+
+    def _load_checkpoint(self, checkpoint_path: str) -> int:
+        """Loads state from checkpoint and returns the epoch to resume from."""
+        path = Path(checkpoint_path)
+        if not path.exists():
+            logger.warning("Checkpoint %s not found. Starting from scratch.", path)
+            return 0
+            
+        logger.info("Loading checkpoint from %s...", path)
+        checkpoint = torch.load(path, map_location=self.device)
+        
+        self.model.load_state_dict(checkpoint["model_state"])
+        self.optimizer.load_state_dict(checkpoint["optim_state"])
+        if "scaler_state" in checkpoint and hasattr(self, "scaler"):
+            self.scaler.load_state_dict(checkpoint["scaler_state"])
+        if "scheduler" in checkpoint and self.scheduler and checkpoint["scheduler"]:
+            self.scheduler.load_state_dict(checkpoint["scheduler"])
+            
+        self.best_auc = checkpoint.get("best_auc", checkpoint.get("auc", 0.0))
+        resumed_epoch = checkpoint["epoch"] + 1
+        
+        logger.info("Successfully resumed from epoch %d (Best AUC: %.4f)", resumed_epoch, self.best_auc)
+        return resumed_epoch
 
     def _setup_logging(self):
         logging.basicConfig(
@@ -385,7 +424,12 @@ class DeepfakeTrainer:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train Video Deepfake Detector")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG), help="Config YAML path")
+    parser.add_argument("--resume", action="store_true", help="Automatically resume from runs/latest_checkpoint.pth")
     args = parser.parse_args()
 
-    trainer = DeepfakeTrainer.from_config(args.config)
+    cfg = load_config(args.config)
+    if args.resume:
+        cfg["resume_checkpoint"] = str(Path(cfg.get("output_dir", "runs/")) / "latest_checkpoint.pth")
+
+    trainer = DeepfakeTrainer(cfg)
     trainer.train()
