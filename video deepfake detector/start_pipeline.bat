@@ -3,16 +3,15 @@ echo ========================================================
 echo   DeepScan Forensics - Dataset & Training Pipeline
 echo ========================================================
 echo.
-echo Phase 1: Downloading and preparing DFDC dataset (Capped at 10GB)...
+echo Phase 1: Running Master Dataset Orchestrator (Extract-and-Combine)...
 echo.
 
 set PYTHONPATH=%cd%
-python "datasets\prepare_dfdc.py"
+python "datasets\orchestrator.py"
 
 if %errorlevel% neq 0 (
     echo.
     echo ❌ Dataset preparation failed. Please check the logs above.
-    pause
     exit /b %errorlevel%
 )
 
@@ -25,4 +24,3 @@ python "ml\training\train.py" --resume
 
 echo.
 echo Training session ended.
-pause
