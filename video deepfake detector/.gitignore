@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# ML / Models
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.safetensors
+runs/
+mlruns/
+wandb/
+
+# Data
+uploads/*
+outputs/heatmaps/*
+outputs/reports/*
+datasets/data/
+*.csv
+!datasets/*.sh
+
+# Database
+*.db
+*.sqlite
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Keep output dirs
+!uploads/.gitkeep
+!outputs/heatmaps/.gitkeep
+!outputs/reports/.gitkeep

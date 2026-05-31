@@ -1,0 +1,77 @@
+# ============================================================
+# Video Deepfake Detection System — Requirements
+# RTX 4060 Local GPU Setup (CUDA 12.x)
+# ============================================================
+
+# ----- Core Deep Learning -----
+torch>=2.1.0
+torchvision>=0.16.0
+torchaudio>=2.1.0
+# Install PyTorch CUDA separately:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# ----- Pretrained Models -----
+timm>=0.9.12               # XceptionNet, ViT-L, EfficientNet-B4
+transformers>=4.36.0       # HuggingFace transformers
+pytorchvideo>=0.1.5        # SlowFast 3D-CNN
+
+# ----- Computer Vision -----
+opencv-python>=4.8.1
+opencv-contrib-python>=4.8.1
+Pillow>=10.1.0
+albumentations>=1.3.1
+scikit-image>=0.22.0
+
+# ----- Face Detection & Landmarks -----
+mediapipe>=0.10.9          # Facial landmarks (68-point)
+retina-face>=0.0.17        # RetinaFace detector (primary)
+deepface>=0.0.79           # Fallback face analysis
+dlib>=19.24.2              # dlib landmark model
+
+# ----- Signal Processing -----
+numpy>=1.26.0
+scipy>=1.11.4
+librosa>=0.10.1            # Audio analysis for lip-sync
+soundfile>=0.12.1
+
+# ----- Explainability -----
+shap>=0.43.0
+grad-cam>=1.4.8            # pytorch-grad-cam
+
+# ----- Backend -----
+fastapi>=0.108.0
+uvicorn[standard]>=0.25.0
+python-multipart>=0.0.6    # File uploads
+websockets>=12.0
+aiofiles>=23.2.1
+aiosqlite>=0.19.0
+sqlalchemy[asyncio]>=2.0.23
+pydantic>=2.5.3
+pydantic-settings>=2.1.0
+httpx>=0.26.0
+python-jose[cryptography]>=3.3.0  # JWT auth
+passlib[bcrypt]>=1.7.4
+python-dotenv>=1.0.0
+
+# ----- Reporting -----
+reportlab>=4.0.8           # PDF forensic reports
+jinja2>=3.1.2
+
+# ----- Training Utilities -----
+scikit-learn>=1.3.2
+matplotlib>=3.8.2
+seaborn>=0.13.0
+tqdm>=4.66.1
+mlflow>=2.9.2              # Experiment tracking
+PyYAML>=6.0.1
+tensorboard>=2.15.1
+
+# ----- Metrics -----
+torchmetrics>=1.2.1
+
+# ----- Utilities -----
+imagehash>=4.3.1           # Perceptual hashing
+psutil>=5.9.7              # System monitoring
+colorlog>=6.8.0            # Colored logging
+rich>=13.7.0               # Rich terminal output
+click>=8.1.7               # CLI tools
